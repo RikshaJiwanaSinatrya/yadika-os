@@ -134,6 +134,58 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function PlusIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5.5v13M5.5 12h13" />
+    </IconBase>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4.5 6.5h15M9.5 6V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.2M6.5 6.5l.8 12a1 1 0 0 0 1 .95h7.4a1 1 0 0 0 1-.95l.8-12" />
+      <path d="M10 10.5v5M14 10.5v5" />
+    </IconBase>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m5.5 12.5 4 4 9-9" />
+    </IconBase>
+  );
+}
+
+export function PaletteIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 20.5a8.5 8.5 0 1 1 8.5-8.5c0 2.2-1.6 3.4-3.4 3.4h-1.9a2 2 0 0 0-1.5 3.3c.4.5.3 1.8-1.7 1.8Z" />
+      <path d="M8 9.5h.01M12 7.5h.01M16 9.5h.01M7.5 13.5h.01" />
+    </IconBase>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </IconBase>
+  );
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5M12 7.8h.01" />
+    </IconBase>
+  );
+}
+
 /** Brand mark used by the Start button. */
 export function LogoMark(props: IconProps) {
   return (
