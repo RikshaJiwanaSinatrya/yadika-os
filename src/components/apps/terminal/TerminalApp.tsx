@@ -10,6 +10,6 @@ import { FakeTerminal } from './FakeTerminal';
 export function TerminalApp() {
   const [mode, setMode] = useState<'pty' | 'fallback'>('pty');
 
-  if (mode === 'fallback') return <FakeTerminal />;
+  if (mode === 'fallback') return <FakeTerminal offline />;
   return <PtyTerminal onUnavailable={() => setMode('fallback')} />;
 }

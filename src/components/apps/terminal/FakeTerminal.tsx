@@ -29,10 +29,24 @@ function Prompt() {
   );
 }
 
-export function FakeTerminal() {
+export function FakeTerminal({ offline = false }: { offline?: boolean }) {
   const [state, dispatch] = useReducer(terminalReducer, initialTerminalState);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (offline) {
+      dispatch({
+        type: 'submit',
+        input: '',
+        output: [
+          { kind: 'error', text: 'Backend terminal tidak terhubung — mode simulasi (ysh).' },
+          { kind: 'muted', text: 'Jalankan `npm run dev` atau `npm start` untuk shell asli.' },
+        ],
+        shouldClear: false,
+      });
+    }
+  }, [offline]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -82,7 +96,7 @@ export function FakeTerminal() {
 
   return (
     <div
-      className="h-full bg-black/40 font-mono text-[13px] leading-relaxed"
+      className="h-full bg-black font-mono text-[13px] leading-relaxed"
       onPointerDown={() => inputRef.current?.focus()}
     >
       <div ref={scrollRef} className="os-scroll h-full overflow-y-auto p-3" aria-live="polite">

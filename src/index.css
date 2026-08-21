@@ -63,3 +63,15 @@ body {
 .os-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Match the xterm.js viewport scrollbar to the OS look */
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.15);
+}
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}

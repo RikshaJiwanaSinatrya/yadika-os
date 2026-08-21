@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { KITTY_THEME } from './kittyTheme';
+import { useWindowStore } from '../../../store/windowStore';
 
 interface PtyMessage {
   type: 'data' | 'exit';
@@ -15,15 +16,31 @@ function terminalUrl(): string {
   return `${protocol}//${window.location.host}/pty`;
 }
 
+const CURSOR_ACTIVE = '#cccccc';
+const CURSOR_INACTIVE = '#767676';
+
 const CONNECT_TIMEOUT_MS = 2500;
 
 export function PtyTerminal({ onUnavailable }: { onUnavailable: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onUnavailableRef = useRef(onUnavailable);
+  const termRef = useRef<Terminal | null>(null);
+
+  const isActive = useWindowStore((s) => {
+    const win = Object.values(s.windows).find((w) => w.appId === 'terminal');
+    return win ? s.activeWindowId === win.id : false;
+  });
 
   useEffect(() => {
     onUnavailableRef.current = onUnavailable;
   }, [onUnavailable]);
+
+  useEffect(() => {
+    const term = termRef.current;
+    if (term) {
+      term.options.theme = { ...KITTY_THEME, cursor: isActive ? CURSOR_ACTIVE : CURSOR_INACTIVE };
+    }
+  }, [isActive]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -40,18 +57,37 @@ export function PtyTerminal({ onUnavailable }: { onUnavailable: () => void }) {
       allowProposedApi: true,
       scrollback: 5000,
     });
+    termRef.current = term;
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(container);
-    fitAddon.fit();
+    const safeFit = () => {
+      try {
+        fitAddon.fit();
+      } catch {
+        // container may be momentarily unmeasurable (e.g. mid-animation)
+      }
+    };
+    safeFit();
+
+    // Web fonts arrive after xterm measures glyph metrics; re-measure once ready.
+    document.fonts.ready.then(() => safeFit());
 
     const socket = new WebSocket(terminalUrl());
     let opened = false;
+    let disposed = false;
+
+    const handleConnectFailure = () => {
+      if (!opened && !disposed) {
+        window.clearTimeout(connectTimer);
+        onUnavailableRef.current();
+      }
+    };
 
     const connectTimer = window.setTimeout(() => {
       if (!opened) {
         socket.close();
-        onUnavailableRef.current();
+        handleConnectFailure();
       }
     }, CONNECT_TIMEOUT_MS);
 
@@ -62,19 +98,8 @@ export function PtyTerminal({ onUnavailable }: { onUnavailable: () => void }) {
       socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
     };
 
-    socket.onerror = () => {
-      if (!opened) {
-        window.clearTimeout(connectTimer);
-        onUnavailableRef.current();
-      }
-    };
-
-    socket.onclose = () => {
-      if (!opened) {
-        window.clearTimeout(connectTimer);
-        onUnavailableRef.current();
-      }
-    };
+    socket.onerror = handleConnectFailure;
+    socket.onclose = handleConnectFailure;
 
     socket.onmessage = (event) => {
       let message: PtyMessage;
@@ -104,18 +129,20 @@ export function PtyTerminal({ onUnavailable }: { onUnavailable: () => void }) {
       }
     });
 
-    const observer = new ResizeObserver(() => fitAddon.fit());
+    const observer = new ResizeObserver(() => safeFit());
     observer.observe(container);
 
     return () => {
+      disposed = true;
       window.clearTimeout(connectTimer);
       observer.disconnect();
       dataDisposable.dispose();
       resizeDisposable.dispose();
       socket.close();
       term.dispose();
+      termRef.current = null;
     };
   }, []);
 
-  return <div ref={containerRef} className="h-full w-full p-1.5" />;
+  return <div ref={containerRef} className="h-full w-full bg-black" />;
 }
