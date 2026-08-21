@@ -10,6 +10,7 @@ import {
 import { CalculatorApp } from '../components/apps/calculator/CalculatorApp';
 import { NotesApp } from '../components/apps/notes/NotesApp';
 import { SettingsApp } from '../components/apps/settings/SettingsApp';
+import { TerminalApp } from '../components/apps/terminal/TerminalApp';
 
 /**
  * Static definition of an application. The window manager only talks to
@@ -50,6 +51,7 @@ export const APP_REGISTRY: Record<string, AppDefinition> = {
     title: 'Terminal',
     icon: TerminalIcon,
     defaultSize: { width: 640, height: 400 },
+    component: TerminalApp,
   },
   settings: {
     id: 'settings',
