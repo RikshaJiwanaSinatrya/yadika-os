@@ -24,6 +24,6 @@ export const useSettingsStore = create<SettingsState>()(
       setWallpaperId: (wallpaperId) => set({ wallpaperId }),
       setClockFormat: (clockFormat) => set({ clockFormat }),
     }),
-    { name: 'nebula-os-settings' },
+    { name: 'yadika-os-settings' },
   ),
 );

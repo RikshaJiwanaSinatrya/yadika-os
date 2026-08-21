@@ -29,7 +29,7 @@ export function AboutSection() {
       <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
         <LogoMark className="h-10 w-10" />
         <div>
-          <p className="text-sm font-semibold text-white">Nebula OS</p>
+          <p className="text-sm font-semibold text-white">Yadika OS</p>
           <p className="text-xs text-slate-500">A desktop that lives in your browser.</p>
         </div>
       </div>

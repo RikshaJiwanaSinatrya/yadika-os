@@ -1,5 +1,5 @@
 import monokromUrl from '../assets/wallpapers/monokrom.png';
-import nebulaUrl from '../assets/wallpapers/nebula.svg';
+import auroraUrl from '../assets/wallpapers/aurora.svg';
 import midnightUrl from '../assets/wallpapers/midnight.svg';
 
 export interface Wallpaper {
@@ -10,7 +10,7 @@ export interface Wallpaper {
 
 export const WALLPAPERS: Wallpaper[] = [
   { id: 'monokrom', name: 'Monokrom', url: monokromUrl },
-  { id: 'nebula', name: 'Nebula', url: nebulaUrl },
+  { id: 'aurora', name: 'Aurora', url: auroraUrl },
   { id: 'midnight', name: 'Midnight', url: midnightUrl },
 ];
 
