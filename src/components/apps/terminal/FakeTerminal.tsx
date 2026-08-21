@@ -9,7 +9,8 @@ import {
 } from './terminalLogic';
 import type { LineKind } from './terminalLogic';
 
-const LINE_STYLES: Record<Exclude<LineKind, 'input'>, string> = {
+const LINE_STYLES: Record<LineKind, string> = {
+  input: 'text-slate-100',
   output: 'text-slate-300',
   error: 'text-red-400',
   success: 'text-emerald-300',
@@ -107,6 +108,12 @@ export function FakeTerminal({ offline = false }: { offline?: boolean }) {
                 <Prompt />
                 <span className="text-slate-100">{line.text}</span>
               </>
+            ) : line.segments && line.segments.length > 0 ? (
+              line.segments.map((segment, index) => (
+                <span key={index} className={segment.className ?? LINE_STYLES[line.kind]}>
+                  {segment.text}
+                </span>
+              ))
             ) : (
               <span className={LINE_STYLES[line.kind]}>{line.text || '\u00a0'}</span>
             )}

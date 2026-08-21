@@ -3,15 +3,22 @@ import { useWindowStore } from '../../../store/windowStore';
 
 export type LineKind = 'input' | 'output' | 'error' | 'success' | 'muted';
 
+export interface LineSegment {
+  text: string;
+  className?: string;
+}
+
 export interface TerminalLine {
   id: number;
   kind: LineKind;
   text: string;
+  segments?: LineSegment[];
 }
 
 export interface CommandOutput {
   kind: LineKind;
   text: string;
+  segments?: LineSegment[];
 }
 
 export const PROMPT_USER = 'guest';
@@ -45,13 +52,52 @@ const HELP_ROWS: Array<[string, string]> = [
   ['neofetch', 'System info with flair'],
 ];
 
-const LOGO_ART = [
-  '    /\\',
-  '   /  \\',
-  '  / /\\ \\',
-  ' / ____ \\',
-  '/_/    \\_\\',
+const DIAMOND_ART: Array<{ text: string; className: string }> = [
+  { text: '    ▄▄███▄▄', className: 'text-cyan-200' },
+  { text: '  ▄██████████▄', className: 'text-cyan-300' },
+  { text: '████████████████', className: 'text-sky-300' },
+  { text: '  ▀██████████▀', className: 'text-indigo-300' },
+  { text: '    ▀▀███▀▀', className: 'text-indigo-400' },
 ];
+
+const ART_GUTTER = 19;
+
+const PALETTE_NORMAL = [
+  'text-slate-700',
+  'text-red-400',
+  'text-green-400',
+  'text-yellow-300',
+  'text-sky-400',
+  'text-fuchsia-400',
+  'text-cyan-300',
+  'text-slate-100',
+];
+
+const PALETTE_BRIGHT = [
+  'text-slate-500',
+  'text-red-300',
+  'text-green-300',
+  'text-yellow-200',
+  'text-sky-300',
+  'text-fuchsia-300',
+  'text-cyan-200',
+  'text-white',
+];
+
+function detectBrowser(userAgent: string): string {
+  if (userAgent.includes('Edg/')) return 'Microsoft Edge';
+  if (userAgent.includes('Chrome/')) return 'Chrome';
+  if (userAgent.includes('Firefox/')) return 'Firefox';
+  if (userAgent.includes('Safari/')) return 'Safari';
+  return 'Unknown browser';
+}
+
+function detectEngine(userAgent: string): string {
+  if (userAgent.includes('Firefox/')) return 'Gecko';
+  if (userAgent.includes('Chrome/') || userAgent.includes('Edg/')) return 'Blink';
+  if (userAgent.includes('Safari/')) return 'WebKit';
+  return 'Unknown';
+}
 
 function formatUptime(): string {
   const totalSeconds = Math.floor(performance.now() / 1000);
@@ -68,6 +114,17 @@ export function completeCommand(partial: string): string | null {
   if (!partial) return null;
   const matches = COMMAND_NAMES.filter((name) => name.startsWith(partial.toLowerCase()));
   return matches.length === 1 ? matches[0] : null;
+}
+
+function paletteRow(classes: string[]): CommandOutput {
+  return {
+    kind: 'output',
+    text: '',
+    segments: [
+      { text: ' '.repeat(ART_GUTTER) },
+      ...classes.map((className) => ({ text: '██ ', className })),
+    ],
+  };
 }
 
 interface CommandContext {
@@ -133,24 +190,57 @@ const COMMANDS: Record<string, CommandHandler> = {
           text: `  ${(index + 1).toString().padStart(3)}  ${command}`,
         })),
   neofetch: () => {
-    const label = `${PROMPT_USER}@${PROMPT_HOST}`;
-    const info = [
-      `${label}`,
-      '-'.repeat(label.length),
-      'OS: Yadika OS 0.2.0',
-      'Shell: ysh 1.0.0',
-      `Resolution: ${window.innerWidth}x${window.innerHeight}`,
-      `Uptime: ${formatUptime()}`,
-      'Theme: Glass Dark',
+    const title = `${PROMPT_USER}@${PROMPT_HOST}`;
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    const dpr = window.devicePixelRatio >= 2 ? '@2x' : '';
+
+    const info: Array<[string, string]> = [
+      ['OS', 'Yadika OS 0.2.0'],
+      ['Host', detectBrowser(navigator.userAgent)],
+      ['Kernel', detectEngine(navigator.userAgent)],
+      ['Shell', 'ysh 1.0.0'],
+      ['Theme', 'Glass Dark'],
+      ['Display', `${window.innerWidth}x${window.innerHeight} ${dpr}`.trim()],
+      ['Uptime', formatUptime()],
+      ['CPU', navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} cores` : '—'],
+      ['Memory', nav.deviceMemory ? `${nav.deviceMemory} GB` : '—'],
+      ['Locale', navigator.language],
+      ['TZ', Intl.DateTimeFormat().resolvedOptions().timeZone],
     ];
-    const width = Math.max(...LOGO_ART.map((line) => line.length));
-    const rowCount = Math.max(LOGO_ART.length, info.length);
+    const keyWidth = Math.max(...info.map(([key]) => key.length));
+
     const rows: CommandOutput[] = [];
+    const rowCount = Math.max(DIAMOND_ART.length, info.length + 2);
     for (let i = 0; i < rowCount; i += 1) {
-      const art = (LOGO_ART[i] ?? '').padEnd(width + 4);
-      const text = info[i] ?? '';
-      rows.push({ kind: i < LOGO_ART.length ? 'success' : 'output', text: `${art}${text}` });
+      const segments: LineSegment[] = [];
+
+      const art = DIAMOND_ART[i];
+      if (art) {
+        segments.push({ text: art.text.padEnd(ART_GUTTER), className: art.className });
+      } else {
+        segments.push({ text: ' '.repeat(ART_GUTTER) });
+      }
+
+      if (i === 0) {
+        segments.push({ text: PROMPT_USER, className: 'font-bold text-cyan-300' });
+        segments.push({ text: '@', className: 'text-slate-500' });
+        segments.push({ text: PROMPT_HOST, className: 'font-bold text-indigo-300' });
+      } else if (i === 1) {
+        segments.push({ text: '─'.repeat(title.length), className: 'text-slate-600' });
+      } else {
+        const row = info[i - 2];
+        if (row) {
+          segments.push({ text: `${row[0].padEnd(keyWidth)}  `, className: 'text-cyan-400' });
+          segments.push({ text: row[1], className: 'text-slate-200' });
+        }
+      }
+
+      rows.push({ kind: 'output', text: '', segments });
     }
+
+    rows.push({ kind: 'output', text: '' });
+    rows.push(paletteRow(PALETTE_NORMAL));
+    rows.push(paletteRow(PALETTE_BRIGHT));
     return rows;
   },
   sudo: () => [
