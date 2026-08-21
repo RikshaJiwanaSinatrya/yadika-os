@@ -9,6 +9,7 @@ import {
 } from '../components/icons/icons';
 import { CalculatorApp } from '../components/apps/calculator/CalculatorApp';
 import { NotesApp } from '../components/apps/notes/NotesApp';
+import { SettingsApp } from '../components/apps/settings/SettingsApp';
 
 /**
  * Static definition of an application. The window manager only talks to
@@ -55,6 +56,7 @@ export const APP_REGISTRY: Record<string, AppDefinition> = {
     title: 'Settings',
     icon: SettingsIcon,
     defaultSize: { width: 720, height: 500 },
+    component: SettingsApp,
   },
 };
 

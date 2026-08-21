@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+import { useSettingsStore } from '../../store/settingsStore';
 
 export function TaskbarClock() {
+  const clockFormat = useSettingsStore((s) => s.clockFormat);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -17,7 +15,11 @@ export function TaskbarClock() {
       dateTime={now.toISOString()}
       className="tabular-nums text-xs font-medium text-slate-300"
     >
-      {formatTime(now)}
+      {now.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: clockFormat === '12h',
+      })}
     </time>
   );
 }
