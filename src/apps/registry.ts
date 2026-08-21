@@ -7,6 +7,8 @@ import {
   SettingsIcon,
   TerminalIcon,
 } from '../components/icons/icons';
+import { CalculatorApp } from '../components/apps/calculator/CalculatorApp';
+import { NotesApp } from '../components/apps/notes/NotesApp';
 
 /**
  * Static definition of an application. The window manager only talks to
@@ -33,12 +35,14 @@ export const APP_REGISTRY: Record<string, AppDefinition> = {
     title: 'Notes',
     icon: NotesIcon,
     defaultSize: { width: 560, height: 420 },
+    component: NotesApp,
   },
   calculator: {
     id: 'calculator',
     title: 'Calculator',
     icon: CalculatorIcon,
     defaultSize: { width: 360, height: 480 },
+    component: CalculatorApp,
   },
   terminal: {
     id: 'terminal',

@@ -134,6 +134,23 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function PlusIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5.5v13M5.5 12h13" />
+    </IconBase>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4.5 6.5h15M9.5 6V4.8a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.2M6.5 6.5l.8 12a1 1 0 0 0 1 .95h7.4a1 1 0 0 0 1-.95l.8-12" />
+      <path d="M10 10.5v5M14 10.5v5" />
+    </IconBase>
+  );
+}
+
 /** Brand mark used by the Start button. */
 export function LogoMark(props: IconProps) {
   return (
