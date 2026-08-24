@@ -1,0 +1,22 @@
+[Unit]
+Description=yadika-os kiosk session (cage + Chromium on tty1)
+Requires=yadika.service
+After=yadika.service systemd-user-sessions.service getty@tty1.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=kiosk
+PAMName=login
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+ExecStart=/usr/bin/cage -s -- /usr/bin/chromium --kiosk --disable-gpu http://127.0.0.1:3000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -51,7 +51,7 @@ export function Window({ win }: WindowProps) {
       <WindowHeader win={win} onClose={handleClose} />
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {AppContent ? <AppContent /> : <PlaceholderContent appId={win.appId} />}
+        {AppContent ? <AppContent win={win} /> : <PlaceholderContent appId={win.appId} />}
       </div>
 
       {!win.isMaximized && (

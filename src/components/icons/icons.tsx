@@ -186,6 +186,88 @@ export function InfoIcon(props: IconProps) {
   );
 }
 
+export function FileIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M13.5 3.5H7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4.5-4.5Z" />
+      <path d="M13.5 3.5V8H18" />
+    </IconBase>
+  );
+}
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m9.5 6.5 6 5.5-6 5.5" />
+    </IconBase>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m6.5 9.5 5.5 6 5.5-6" />
+    </IconBase>
+  );
+}
+
+export function RefreshIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M20 5.5v4.5h-4.5" />
+      <path d="M19.2 10a7.5 7.5 0 1 0 .3 4" />
+    </IconBase>
+  );
+}
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="m14.5 5.5 4 4L8 20l-4.5.5L4 16Z" />
+      <path d="m12.5 7.5 4 4" />
+    </IconBase>
+  );
+}
+
+export function SaveIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5 3.5h11L20.5 8v11a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
+      <path d="M8 3.5V8h6V3.5" />
+      <path d="M8 20v-6h8v6" />
+    </IconBase>
+  );
+}
+
+export function FolderPlusIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9v8A1.5 1.5 0 0 1 19 18.5H5A1.5 1.5 0 0 1 3.5 17Z" />
+      <path d="M12 9.5v5M9.5 12h5" />
+    </IconBase>
+  );
+}
+
+export function FilePlusIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M13.5 3.5H7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4.5-4.5Z" />
+      <path d="M13.5 3.5V8H18" />
+      <path d="M12 11v5M9.5 13.5h5" />
+    </IconBase>
+  );
+}
+
+export function HardDriveIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3" y="9.5" width="18" height="8" rx="1.5" />
+      <path d="M6.5 6.5h11a2 2 0 0 1 1.9 1.4l.6 1.6M3.9 9.5l.6-1.6A2 2 0 0 1 6.5 6.5" />
+      <path d="M17.5 13.5h.01" />
+    </IconBase>
+  );
+}
+
 /** Brand mark used by the Start button. */
 export function LogoMark(props: IconProps) {
   return (

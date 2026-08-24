@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { osStorage } from '../lib/osStorage';
 
 export interface Note {
   id: string;
@@ -28,33 +30,42 @@ export function noteSnippet(note: Note): string {
   return rest;
 }
 
-export const useNotesStore = create<NotesStore>((set) => ({
-  notes: [],
-  selectedNoteId: null,
+export const useNotesStore = create<NotesStore>()(
+  persist(
+    (set) => ({
+      notes: [],
+      selectedNoteId: null,
 
-  createNote: () =>
-    set((state) => {
-      const now = Date.now();
-      const note: Note = { id: crypto.randomUUID(), content: '', createdAt: now, updatedAt: now };
-      return { notes: [note, ...state.notes], selectedNoteId: note.id };
+      createNote: () =>
+        set((state) => {
+          const now = Date.now();
+          const note: Note = { id: crypto.randomUUID(), content: '', createdAt: now, updatedAt: now };
+          return { notes: [note, ...state.notes], selectedNoteId: note.id };
+        }),
+
+      updateNoteContent: (id, content) =>
+        set((state) => ({
+          notes: state.notes.map((note) =>
+            note.id === id ? { ...note, content, updatedAt: Date.now() } : note,
+          ),
+        })),
+
+      deleteNote: (id) =>
+        set((state) => {
+          const notes = state.notes.filter((note) => note.id !== id);
+          const selectedNoteId =
+            state.selectedNoteId === id
+              ? (notes.sort((a, b) => b.updatedAt - a.updatedAt)[0]?.id ?? null)
+              : state.selectedNoteId;
+          return { notes, selectedNoteId };
+        }),
+
+      selectNote: (id) => set({ selectedNoteId: id }),
     }),
-
-  updateNoteContent: (id, content) =>
-    set((state) => ({
-      notes: state.notes.map((note) =>
-        note.id === id ? { ...note, content, updatedAt: Date.now() } : note,
-      ),
-    })),
-
-  deleteNote: (id) =>
-    set((state) => {
-      const notes = state.notes.filter((note) => note.id !== id);
-      const selectedNoteId =
-        state.selectedNoteId === id
-          ? (notes.sort((a, b) => b.updatedAt - a.updatedAt)[0]?.id ?? null)
-          : state.selectedNoteId;
-      return { notes, selectedNoteId };
-    }),
-
-  selectNote: (id) => set({ selectedNoteId: id }),
-}));
+    {
+      name: 'yadika-os-notes',
+      storage: createJSONStorage(() => osStorage),
+      partialize: (state) => ({ notes: state.notes, selectedNoteId: state.selectedNoteId }),
+    },
+  ),
+);

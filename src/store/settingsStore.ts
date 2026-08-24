@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_WALLPAPER_ID } from '../lib/wallpapers';
+import { osStorage } from '../lib/osStorage';
 
 export type ClockFormat = '12h' | '24h';
 
@@ -12,7 +13,8 @@ interface SettingsState {
 }
 
 /**
- * User preferences, persisted to localStorage so they survive reloads.
+ * User preferences. Persisted through the FS API as a JSON file in the data
+ * dir when the backend is reachable, with localStorage as mirror/fallback.
  * Consumers must tolerate unknown stored ids (e.g. removed wallpapers)
  * by falling back at the usage site.
  */
@@ -24,6 +26,9 @@ export const useSettingsStore = create<SettingsState>()(
       setWallpaperId: (wallpaperId) => set({ wallpaperId }),
       setClockFormat: (clockFormat) => set({ clockFormat }),
     }),
-    { name: 'yadika-os-settings' },
+    {
+      name: 'yadika-os-settings',
+      storage: createJSONStorage(() => osStorage),
+    },
   ),
 );

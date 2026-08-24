@@ -5,6 +5,7 @@ import { extname, join, normalize, resolve } from 'node:path';
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import pty from 'node-pty';
+import { handleFsApi, initDataDir } from './fs-api.mjs';
 
 const PORT = Number(process.env.PTY_PORT ?? process.env.PORT) || 3001;
 const TERMINAL_PATH = '/pty';
@@ -41,14 +42,17 @@ function sendFile(res, filePath) {
   createReadStream(filePath).pipe(res);
 }
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
+  const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+
+  if (await handleFsApi(req, res, url)) return;
+
   if (!HAS_CLIENT_BUILD) {
     res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Terminal backend is running. Run `npm run build` to serve the client here too.');
     return;
   }
 
-  const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === '/') pathname = '/index.html';
 
@@ -140,6 +144,10 @@ server.on('error', (error) => {
     process.exit(1);
   }
   throw error;
+});
+
+initDataDir().catch((error) => {
+  console.error(`[yadika] FS API disabled — cannot init data dir: ${error.message}`);
 });
 
 server.listen(PORT, () => {

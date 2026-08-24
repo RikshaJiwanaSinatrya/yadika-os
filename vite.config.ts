@@ -11,6 +11,9 @@ export default defineConfig({
         target: `ws://localhost:${process.env.PTY_PORT ?? 3001}`,
         ws: true,
       },
+      '/api': {
+        target: `http://localhost:${process.env.PTY_PORT ?? 3001}`,
+      },
     },
   },
 })

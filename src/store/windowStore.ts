@@ -11,17 +11,36 @@ import type {
   WindowState,
 } from '../types/window';
 
+export interface OpenWindowOptions {
+  /** Override the default window title (e.g. file name for the editor). */
+  title?: string;
+  /** App launch parameters; windows with identical params are reused. */
+  params?: Record<string, string>;
+}
+
 interface WindowStore {
   windows: Record<string, WindowState>;
   activeWindowId: string | null;
   nextZIndex: number;
-  openWindow: (appId: string) => void;
+  openWindow: (appId: string, options?: OpenWindowOptions) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   toggleMaximize: (id: string, workArea: WindowSize) => void;
   moveWindow: (id: string, position: WindowPosition) => void;
   resizeWindow: (id: string, size: WindowSize) => void;
+  setWindowTitle: (id: string, title: string) => void;
+}
+
+function sameParams(
+  a: Record<string, string> | undefined,
+  b: Record<string, string> | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -38,7 +57,12 @@ function topmostVisibleWindow(windows: Record<string, WindowState>): WindowState
   return top;
 }
 
-function createWindowState(appId: string, cascadeIndex: number, zIndex: number): WindowState | null {
+function createWindowState(
+  appId: string,
+  cascadeIndex: number,
+  zIndex: number,
+  options?: OpenWindowOptions,
+): WindowState | null {
   const app = APP_REGISTRY[appId];
   if (!app) return null;
 
@@ -56,7 +80,7 @@ function createWindowState(appId: string, cascadeIndex: number, zIndex: number):
   return {
     id: crypto.randomUUID(),
     appId,
-    title: app.title,
+    title: options?.title ?? app.title,
     isOpen: true,
     isMinimized: false,
     isMaximized: false,
@@ -64,6 +88,7 @@ function createWindowState(appId: string, cascadeIndex: number, zIndex: number):
     position,
     size: { width, height },
     previousBounds: null,
+    params: options?.params ? { ...options.params } : undefined,
   };
 }
 
@@ -72,11 +97,16 @@ export const useWindowStore = create<WindowStore>((set) => ({
   activeWindowId: null,
   nextZIndex: BASE_Z_INDEX,
 
-  openWindow: (appId) =>
+  openWindow: (appId, options) =>
     set((state) => {
-      // One instance per app in Phase 1: re-opening focuses the existing window.
-      const existing = Object.values(state.windows).find((win) => win.appId === appId);
-      if (existing) {
+      if (!APP_REGISTRY[appId]) return state;
+
+      // Re-opening with the same launch params focuses the existing window;
+      // different params (e.g. another file in the editor) spawn a new one.
+      const existing = Object.values(state.windows).find(
+        (win) => win.appId === appId && sameParams(win.params, options?.params),
+      );
+      if (existing && !options?.title) {
         return {
           windows: {
             ...state.windows,
@@ -90,8 +120,23 @@ export const useWindowStore = create<WindowStore>((set) => ({
           nextZIndex: state.nextZIndex + 1,
         };
       }
+      if (existing && options?.title) {
+        return {
+          windows: {
+            ...state.windows,
+            [existing.id]: { ...existing, title: options.title },
+          },
+          activeWindowId: existing.id,
+          nextZIndex: state.nextZIndex + 1,
+        };
+      }
 
-      const win = createWindowState(appId, Object.keys(state.windows).length, state.nextZIndex);
+      const win = createWindowState(
+        appId,
+        Object.keys(state.windows).length,
+        state.nextZIndex,
+        options,
+      );
       if (!win) return state;
 
       return {
@@ -191,6 +236,15 @@ export const useWindowStore = create<WindowStore>((set) => ({
       if (!win || win.isMaximized) return state;
       return {
         windows: { ...state.windows, [id]: { ...win, size } },
+      };
+    }),
+
+  setWindowTitle: (id, title) =>
+    set((state) => {
+      const win = state.windows[id];
+      if (!win || win.title === title) return state;
+      return {
+        windows: { ...state.windows, [id]: { ...win, title } },
       };
     }),
 }));

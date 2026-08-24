@@ -13,7 +13,7 @@ export interface WindowBounds {
   size: WindowSize;
 }
 
-export type WindowState = {
+export interface WindowState {
   id: string;
   appId: string;
   title: string;
@@ -25,4 +25,11 @@ export type WindowState = {
   size: WindowSize;
   /** Bounds to restore to after leaving maximized state. */
   previousBounds: WindowBounds | null;
-};
+  /** App-specific launch parameters (e.g. file path for the editor). */
+  params?: Record<string, string>;
+}
+
+/** Props handed to every registered app component. */
+export interface AppProps {
+  win: WindowState;
+}
