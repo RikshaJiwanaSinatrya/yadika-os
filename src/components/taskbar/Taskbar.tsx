@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { StartMenu } from './StartMenu';
 import { TaskbarClock } from './TaskbarClock';
-import { BatteryIcon, LogoMark, VolumeIcon, WifiIcon } from '../icons/icons';
+import { SystemTray } from './SystemTray';
+import { LogoMark } from '../icons/icons';
 import { APP_REGISTRY } from '../../apps/registry';
 import { useWindowStore } from '../../store/windowStore';
 
@@ -57,17 +58,19 @@ export function Taskbar() {
               >
                 <TaskIcon appId={win.appId} />
                 <span className="truncate">{win.title}</span>
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${
+                    win.isMinimized || activeWindowId !== win.id ? 'bg-slate-500' : 'bg-cyan-300'
+                  }`}
+                />
               </button>
             </li>
           ))}
         </ul>
 
-        <div className="flex shrink-0 items-center gap-3 pl-2 text-slate-400">
-          <WifiIcon className="h-4 w-4" />
-          <VolumeIcon className="h-4 w-4" />
-          <BatteryIcon className="h-4 w-4" />
-          <TaskbarClock />
-        </div>
+        <SystemTray />
+        <TaskbarClock />
       </div>
 
       <StartMenu open={isStartOpen} onClose={() => setIsStartOpen(false)} />

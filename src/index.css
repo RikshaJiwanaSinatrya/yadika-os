@@ -75,3 +75,31 @@ body {
 .xterm .xterm-viewport::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Range slider used by the volume tray */
+input[type='range'].os-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.15);
+  outline: none;
+  cursor: pointer;
+}
+input[type='range'].os-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #67e8f9;
+  border: none;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+}
+input[type='range'].os-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #67e8f9;
+  border: none;
+}

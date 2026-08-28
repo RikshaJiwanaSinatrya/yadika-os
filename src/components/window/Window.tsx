@@ -54,7 +54,7 @@ export function Window({ win }: WindowProps) {
         {AppContent ? <AppContent win={win} /> : <PlaceholderContent appId={win.appId} />}
       </div>
 
-      {!win.isMaximized && (
+      {!win.isMaximized && !win.snap && (
         <div
           {...resizeHandlers}
           aria-hidden="true"

@@ -6,6 +6,7 @@ import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import pty from 'node-pty';
 import { handleFsApi, initDataDir } from './fs-api.mjs';
+import { handleNetworkApi } from './network-api.mjs';
 
 const PORT = Number(process.env.PTY_PORT ?? process.env.PORT) || 3001;
 const TERMINAL_PATH = '/pty';
@@ -46,6 +47,7 @@ async function handleRequest(req, res) {
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
 
   if (await handleFsApi(req, res, url)) return;
+  if (await handleNetworkApi(req, res, url)) return;
 
   if (!HAS_CLIENT_BUILD) {
     res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });

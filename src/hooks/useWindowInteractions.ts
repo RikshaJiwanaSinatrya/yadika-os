@@ -7,17 +7,31 @@ import {
   MIN_WINDOW_WIDTH,
   TASKBAR_HEIGHT,
 } from '../lib/constants';
-import type { WindowState } from '../types/window';
+import type { WindowSnap, WindowState, WorkArea } from '../types/window';
 
 interface DragSession {
   pointerX: number;
   pointerY: number;
   originX: number;
   originY: number;
+  snapped: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function getWorkArea(): WorkArea {
+  return { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT };
+}
+
+/** Snap zone suggested by pointer position during a drag (aero snap). */
+function snapZoneForPointer(x: number, y: number): WindowSnap {
+  const edge = 12;
+  if (x <= edge) return 'left';
+  if (x >= window.innerWidth - edge) return 'right';
+  if (y <= edge) return 'full';
+  return null;
 }
 
 /**
@@ -28,6 +42,7 @@ function clamp(value: number, min: number, max: number): number {
 function useWindowPointerSession(win: WindowState) {
   const moveWindow = useWindowStore((s) => s.moveWindow);
   const resizeWindow = useWindowStore((s) => s.resizeWindow);
+  const snapWindow = useWindowStore((s) => s.snapWindow);
   const session = useRef<DragSession | null>(null);
 
   const endSession = useCallback((event: ReactPointerEvent<HTMLElement>) => {
@@ -45,6 +60,7 @@ function useWindowPointerSession(win: WindowState) {
         pointerY: event.clientY,
         originX: win.position.x,
         originY: win.position.y,
+        snapped: false,
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
@@ -56,6 +72,23 @@ function useWindowPointerSession(win: WindowState) {
       const start = session.current;
       if (!start) return;
 
+      // Aero snap: cross an edge while dragging to dock the window there.
+      if (!start.snapped) {
+        const zone = snapZoneForPointer(event.clientX, event.clientY);
+        if (zone) {
+          start.snapped = true;
+          snapWindow(win.id, zone, getWorkArea());
+          return;
+        }
+      } else {
+        // Once snapped, a cursor re-entering the work area re-enables free drag.
+        if (snapZoneForPointer(event.clientX, event.clientY) === null) {
+          start.snapped = false;
+          moveWindow(win.id, { x: event.clientX - start.pointerX, y: event.clientY - start.pointerY });
+        }
+        return;
+      }
+
       const maxX = window.innerWidth - DRAG_VISIBLE_MARGIN;
       const minX = -(win.size.width - DRAG_VISIBLE_MARGIN);
       // Keep the header reachable above the taskbar.
@@ -66,7 +99,7 @@ function useWindowPointerSession(win: WindowState) {
         y: clamp(start.originY + event.clientY - start.pointerY, 0, maxY),
       });
     },
-    [moveWindow, win.id, win.size.width],
+    [moveWindow, snapWindow, win.id, win.size.width],
   );
 
   const startResize = useCallback(
@@ -77,6 +110,7 @@ function useWindowPointerSession(win: WindowState) {
         pointerY: event.clientY,
         originX: win.size.width,
         originY: win.size.height,
+        snapped: false,
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     },

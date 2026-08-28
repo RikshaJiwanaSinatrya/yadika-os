@@ -1,6 +1,6 @@
 import { homedir } from 'node:os';
 import { promises as fs } from 'node:fs';
-import { dirname, join, normalize, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, normalize, relative, resolve, sep } from 'node:path';
 
 const API_PREFIX = '/api/fs/';
 export const DATA_DIR = resolve(
@@ -145,6 +145,35 @@ async function listEntry(target) {
   }
 }
 
+/** Find a destination name that does not collide, appending " (copy)" as needed. */
+async function availableTarget(target) {
+  if ((await listEntry(target)) === null) return target;
+  const base = basename(target);
+  const dir = dirname(target);
+  const dot = base.lastIndexOf('.');
+  const stem = dot > 0 ? base.slice(0, dot) : base;
+  const ext = dot > 0 ? base.slice(dot) : '';
+  for (let i = 1; ; i++) {
+    const candidate = join(dir, `${stem} (copy ${i})${ext}`);
+    if ((await listEntry(candidate)) === null) return candidate;
+  }
+}
+
+async function copyEntry(fromTarget, toTarget) {
+  const stats = await listEntry(fromTarget);
+  if (!stats) throw new HttpError(404, 'Source not found');
+  if (stats.isDirectory()) {
+    await fs.mkdir(toTarget, { recursive: true });
+    const children = await fs.readdir(fromTarget);
+    for (const child of children) {
+      await copyEntry(join(fromTarget, child), join(toTarget, child));
+    }
+  } else {
+    await fs.copyFile(fromTarget, toTarget);
+  }
+}
+
+
 async function handleGet(req, res, action, searchParams) {
   const relPath = searchParams.get('path') ?? '/';
   const target = await safeResolve(relPath);
@@ -260,6 +289,30 @@ async function handlePost(req, res, action) {
       if (error.code === 'ENOENT') throw new HttpError(404, 'Source not found');
       throw error;
     }
+    sendJson(res, 200, { ok: true });
+    return true;
+  }
+
+  if (action === 'copy') {
+    const fromRel = requireStringField(body, 'from');
+    const toRel = requireStringField(body, 'to');
+    requireNonRoot(fromRel);
+    const fromTarget = await safeResolve(fromRel);
+    const destination = await safeResolve(toRel);
+    assertInsideSandbox(fromTarget);
+    assertInsideSandbox(destination);
+    if ((await listEntry(fromTarget)) === null) throw new HttpError(404, 'Source not found');
+    const isDir = (await fs.stat(fromTarget)).isDirectory();
+    const destStats = await listEntry(destination);
+    // Copying into an existing directory nests the source under it by name.
+    const toTarget =
+      destStats && destStats.isDirectory()
+        ? (await availableTarget(join(destination, basename(fromRel.replace(/\/$/, '')))))
+        : (await availableTarget(destination));
+    if (isDir) {
+      await fs.mkdir(dirname(toTarget), { recursive: true });
+    }
+    await copyEntry(fromTarget, toTarget);
     sendJson(res, 200, { ok: true });
     return true;
   }

@@ -8,20 +8,27 @@ import type {
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  CopyIcon,
+  CutIcon,
   FileIcon,
   FilePlusIcon,
   FolderIcon,
   FolderPlusIcon,
   HardDriveIcon,
+  PasteIcon,
   PencilIcon,
   RefreshIcon,
+  SortIcon,
   TrashIcon,
 } from '../../icons/icons';
 import {
   type FsEntry,
+  baseName,
+  copyPath,
   joinPath,
   listDir,
   makeDir,
+  movePath,
   parentPath,
   removePath,
   renamePath,
@@ -31,6 +38,14 @@ import { useWindowStore } from '../../../store/windowStore';
 
 const ROOT = '/';
 const DELETE_ARM_MS = 3000;
+
+type SortKey = 'name' | 'size' | 'mtime';
+type SortOrder = 'asc' | 'desc';
+
+interface ClipboardState {
+  kind: 'copy' | 'cut';
+  paths: string[];
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -55,6 +70,19 @@ function breadcrumbSegments(dir: string): Array<{ name: string; path: string }> 
     segments.push({ name: part, path: accumulated });
   }
   return segments;
+}
+
+function compareEntries(a: FsEntry, b: FsEntry, key: SortKey, order: SortOrder): number {
+  if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+  let result: number;
+  if (key === 'name') {
+    result = a.name.localeCompare(b.name);
+  } else if (key === 'size') {
+    result = a.size - b.size;
+  } else {
+    result = a.mtimeMs - b.mtimeMs;
+  }
+  return order === 'asc' ? result : -result;
 }
 
 interface NameInputProps {
@@ -103,6 +131,9 @@ export function ExplorerApp() {
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [creatingKind, setCreatingKind] = useState<'file' | 'folder' | null>(null);
   const [armedDelete, setArmedDelete] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<ClipboardState | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [error, setError] = useState<string | null>(null);
   const errorTimerRef = useRef<number | undefined>(undefined);
 
@@ -218,6 +249,56 @@ export function ExplorerApp() {
     );
   };
 
+  const handleCopy = () => {
+    if (!selected) return;
+    setClipboard({ kind: 'copy', paths: [selected] });
+  };
+
+  const handleCut = () => {
+    if (!selected) return;
+    setClipboard({ kind: 'cut', paths: [selected] });
+  };
+
+  const handlePaste = () => {
+    if (!clipboard || clipboard.paths.length === 0) return;
+    const { kind, paths } = clipboard;
+    const targetDir = currentDir;
+
+    const operations = paths.map((source) => {
+      const name = baseName(source);
+      const destination = joinPath(targetDir, name);
+      if (kind === 'copy') {
+        return copyPath(source, destination).then(() => undefined);
+      }
+      // Cut is a move; the source folder itself is refreshed during cleanup.
+      return movePath(source, destination);
+    });
+
+    Promise.all(operations).then(
+      () => {
+        if (kind === 'cut') {
+          paths.forEach(purgeTreeBelow);
+          setClipboard(null);
+          setSelected(null);
+        }
+        void refreshDir(targetDir);
+        if (kind === 'copy') {
+          for (const source of paths) void refreshDir(parentPath(source));
+        }
+      },
+      (reason) => showError(reason instanceof Error ? reason.message : String(reason)),
+    );
+  };
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder((order) => (order === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortOrder('asc');
+    }
+  };
+
   const handleDelete = () => {
     if (!selected) return;
     if (armedDelete !== selected) {
@@ -243,7 +324,9 @@ export function ExplorerApp() {
     );
   };
 
-  const currentEntries = tree[currentDir];
+  const currentEntries = [...(tree[currentDir] ?? [])].sort((a, b) =>
+    compareEntries(a, b, sortKey, sortOrder),
+  );
   const directoriesIn = (dir: string) =>
     (tree[dir] ?? []).filter((entry) => entry.type === 'directory');
 
@@ -323,10 +406,24 @@ export function ExplorerApp() {
             <ToolButton label="New folder" onClick={() => setCreatingKind('folder')} disabled={creatingKind !== null}>
               <FolderPlusIcon className="h-3.5 w-3.5" />
             </ToolButton>
+            <ToolButton label="Copy" onClick={handleCopy} disabled={!selected}>
+              <CopyIcon className="h-3.5 w-3.5" />
+            </ToolButton>
+            <ToolButton label="Cut" onClick={handleCut} disabled={!selected}>
+              <CutIcon className="h-3.5 w-3.5" />
+            </ToolButton>
+            <ToolButton
+              label={clipboard ? `Paste ${clipboard.kind === 'cut' ? '(move) ' : ''}(${clipboard.paths.length})` : 'Paste'}
+              active={clipboard !== null}
+              onClick={handlePaste}
+              disabled={!clipboard}
+            >
+              <PasteIcon className="h-3.5 w-3.5" />
+            </ToolButton>
             <ToolButton
               label="Rename"
               onClick={() => {
-                const entry = currentEntries?.find((e) => joinPath(currentDir, e.name) === selected);
+                const entry = currentEntries.find((e) => joinPath(currentDir, e.name) === selected);
                 if (entry) startRename(entry);
               }}
               disabled={!selected || parentPath(selected) !== currentDir}
@@ -344,6 +441,7 @@ export function ExplorerApp() {
             <ToolButton label="Refresh" onClick={() => void refreshDir(currentDir)}>
               <RefreshIcon className="h-3.5 w-3.5" />
             </ToolButton>
+            <SortButton sortKey={sortKey} sortOrder={sortOrder} onToggle={toggleSort} />
           </div>
         </div>
 
@@ -444,12 +542,14 @@ function ToolButton({
   onClick,
   disabled = false,
   danger = false,
+  active = false,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  active?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -462,10 +562,75 @@ function ToolButton({
       className={`grid h-6 w-6 place-items-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-30 ${
         danger
           ? 'bg-red-500/20 text-red-200 hover:bg-red-500/40'
-          : 'text-slate-400 hover:bg-white/10 hover:text-slate-100'
+          : active
+            ? 'bg-cyan-400/20 text-cyan-100 hover:bg-cyan-400/30'
+            : 'text-slate-400 hover:bg-white/10 hover:text-slate-100'
       }`}
     >
       {children}
     </button>
+  );
+}
+
+const SORT_COLUMNS: Array<{ key: SortKey; label: string }> = [
+  { key: 'name', label: 'Name' },
+  { key: 'size', label: 'Size' },
+  { key: 'mtime', label: 'Date modified' },
+];
+
+function SortButton({
+  sortKey,
+  sortOrder,
+  onToggle,
+}: {
+  sortKey: SortKey;
+  sortOrder: SortOrder;
+  onToggle: (key: SortKey) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeLabel = SORT_COLUMNS.find((col) => col.key === sortKey)?.label ?? 'Name';
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        title={`Sort by ${activeLabel} (${sortOrder === 'asc' ? 'ascending' : 'descending'})`}
+        aria-label="Sort items"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${
+          open ? 'bg-white/15 text-slate-100' : 'text-slate-400 hover:bg-white/10 hover:text-slate-100'
+        }`}
+      >
+        <SortIcon className="h-3.5 w-3.5" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onPointerDown={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute right-0 top-7 z-20 w-36 rounded-lg border border-white/10 bg-slate-950/95 p-1 shadow-xl backdrop-blur-xl">
+            {SORT_COLUMNS.map((col) => {
+              const isActive = sortKey === col.key;
+              return (
+                <button
+                  key={col.key}
+                  type="button"
+                  onClick={() => {
+                    onToggle(col.key);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] transition-colors ${
+                    isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                  }`}
+                >
+                  <span>{col.label}</span>
+                  {isActive && <span className="text-cyan-300/80">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

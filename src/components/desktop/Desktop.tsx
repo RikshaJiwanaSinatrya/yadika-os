@@ -1,5 +1,6 @@
 import { getWallpaper } from '../../lib/wallpapers';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useWindowKeyboardShortcuts } from '../../hooks/useWindowKeyboardShortcuts';
 import { Taskbar } from '../taskbar/Taskbar';
 import { WindowManager } from '../window/WindowManager';
 
@@ -11,6 +12,7 @@ import { WindowManager } from '../window/WindowManager';
 export function Desktop() {
   const wallpaperId = useSettingsStore((s) => s.wallpaperId);
   const wallpaper = getWallpaper(wallpaperId);
+  useWindowKeyboardShortcuts();
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden">

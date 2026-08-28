@@ -80,6 +80,15 @@ export async function renamePath(from: string, to: string): Promise<void> {
   await post('rename', { from, to });
 }
 
+export async function copyPath(from: string, to: string): Promise<void> {
+  await post('copy', { from, to });
+}
+
+/** Move a file/folder by renaming it to the destination. */
+export async function movePath(from: string, to: string): Promise<void> {
+  await renamePath(from, to);
+}
+
 export type StorageBackend = 'fs' | 'local';
 
 let detectionPromise: Promise<StorageBackend> | null = null;

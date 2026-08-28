@@ -91,6 +91,34 @@ export function VolumeIcon(props: IconProps) {
   );
 }
 
+export function VolumeMuteIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 10v4h3l4 3.5v-11L7 10Z" />
+      <path d="m15.5 9.5 5 5M20.5 9.5l-5 5" />
+    </IconBase>
+  );
+}
+
+export function BatteryEmptyIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="2.5" y="8" width="17" height="8" rx="1.5" />
+      <path d="M21.5 11v2" />
+    </IconBase>
+  );
+}
+
+export function BatteryChargingIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="2.5" y="8" width="17" height="8" rx="1.5" />
+      <path d="M21.5 11v2" />
+      <path d="M10.5 9.5 9 13.5h3l-1.5 4" />
+    </IconBase>
+  );
+}
+
 export function BatteryIcon(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -235,6 +263,52 @@ export function SaveIcon(props: IconProps) {
       <path d="M5 3.5h11L20.5 8v11a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
       <path d="M8 3.5V8h6V3.5" />
       <path d="M8 20v-6h8v6" />
+    </IconBase>
+  );
+}
+
+export function CopyIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" />
+      <path d="M5.5 15.5h-.5a1.5 1.5 0 0 1-1.5-1.5V5.5A1.5 1.5 0 0 1 5 4h8.5A1.5 1.5 0 0 1 15 5.5v.5" />
+    </IconBase>
+  );
+}
+
+export function CutIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <path d="m8.2 7.5 10 10M8.2 16.5 18.2 6.5" />
+    </IconBase>
+  );
+}
+
+export function PasteIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9 4.5h6v3H9z" />
+      <rect x="5" y="6" width="14" height="14" rx="1.5" />
+      <path d="M9 12h6M9 15.5h4" />
+    </IconBase>
+  );
+}
+
+export function SortIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M8.5 5.5v13M8.5 5.5l-3.5 3.5M8.5 5.5 12 9" />
+      <path d="M15.5 18.5v-13M15.5 18.5l-3.5-3.5M15.5 18.5 19 15" />
+    </IconBase>
+  );
+}
+
+export function LoaderIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.5v2.5M18.5 5.5l-1.8 1.8M21 12h-2.5M18.5 18.5l-1.8-1.8M12 21v-2.5M5.5 18.5l1.8-1.8M3 12h2.5M5.5 5.5l1.8 1.8" />
     </IconBase>
   );
 }

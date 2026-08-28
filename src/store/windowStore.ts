@@ -6,9 +6,12 @@ import {
   WINDOW_CASCADE_OFFSET,
 } from '../lib/constants';
 import type {
+  WindowBounds,
   WindowPosition,
   WindowSize,
+  WindowSnap,
   WindowState,
+  WorkArea,
 } from '../types/window';
 
 export interface OpenWindowOptions {
@@ -26,7 +29,8 @@ interface WindowStore {
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
-  toggleMaximize: (id: string, workArea: WindowSize) => void;
+  toggleMaximize: (id: string, workArea: WorkArea) => void;
+  snapWindow: (id: string, snap: Exclude<WindowSnap, null>, workArea: WorkArea) => void;
   moveWindow: (id: string, position: WindowPosition) => void;
   resizeWindow: (id: string, size: WindowSize) => void;
   setWindowTitle: (id: string, title: string) => void;
@@ -55,6 +59,38 @@ function topmostVisibleWindow(windows: Record<string, WindowState>): WindowState
     if (!top || win.zIndex > top.zIndex) top = win;
   }
   return top;
+}
+
+/** Bounds a window occupies when snapped to the given region of a work area. */
+function boundsForSnap(
+  snap: Exclude<WindowSnap, null>,
+  workArea: WorkArea,
+): WindowBounds {
+  const gap = 6;
+  if (snap === 'full') {
+    return { position: { x: 0, y: 0 }, size: workArea };
+  }
+  const halfWidth = workArea.width / 2;
+  if (snap === 'left') {
+    return {
+      position: { x: 0, y: gap },
+      size: { width: halfWidth - gap, height: workArea.height - gap },
+    };
+  }
+  return {
+    position: { x: halfWidth + gap / 2, y: gap },
+    size: { width: halfWidth - gap, height: workArea.height - gap },
+  };
+}
+
+/** The bounds to restore once a window leaves its snapped/maximized state. */
+function restoreBounds(win: WindowState): WindowBounds {
+  return (
+    win.previousBounds ?? {
+      position: { x: 40, y: 40 },
+      size: { width: win.size.width, height: win.size.height },
+    }
+  );
 }
 
 function createWindowState(
@@ -88,6 +124,7 @@ function createWindowState(
     position,
     size: { width, height },
     previousBounds: null,
+    snap: null,
     params: options?.params ? { ...options.params } : undefined,
   };
 }
@@ -195,22 +232,66 @@ export const useWindowStore = create<WindowStore>((set) => ({
       if (!win) return state;
 
       let updated: WindowState;
-      if (win.isMaximized) {
-        const previous = win.previousBounds;
+      if (win.isMaximized || win.snap === 'full') {
+        const bounds = restoreBounds(win);
         updated = {
           ...win,
           isMaximized: false,
-          position: previous?.position ?? win.position,
-          size: previous?.size ?? win.size,
+          snap: null,
           previousBounds: null,
+          position: bounds.position,
+          size: bounds.size,
         };
       } else {
         updated = {
           ...win,
           isMaximized: true,
+          snap: 'full',
           previousBounds: { position: win.position, size: win.size },
           position: { x: 0, y: 0 },
           size: { width: workArea.width, height: workArea.height },
+        };
+      }
+
+      return {
+        windows: { ...state.windows, [id]: updated },
+        activeWindowId: id,
+        nextZIndex: state.nextZIndex + 1,
+      };
+    }),
+
+  snapWindow: (id, snap, workArea) =>
+    set((state) => {
+      const win = state.windows[id];
+      if (!win) return state;
+
+      const isFull = snap === 'full';
+      const leaving =
+        win.snap === snap || (win.isMaximized && isFull) || (win.snap === 'full' && isFull);
+
+      let updated: WindowState;
+      if (leaving) {
+        const bounds = restoreBounds(win);
+        updated = {
+          ...win,
+          isMaximized: false,
+          snap: null,
+          previousBounds: null,
+          position: bounds.position,
+          size: bounds.size,
+        };
+      } else {
+        const bounds = boundsForSnap(snap, workArea);
+        updated = {
+          ...win,
+          isMaximized: snap === 'full',
+          snap,
+          previousBounds: win.previousBounds ?? {
+            position: win.position,
+            size: win.size,
+          },
+          position: bounds.position,
+          size: bounds.size,
         };
       }
 
@@ -225,8 +306,13 @@ export const useWindowStore = create<WindowStore>((set) => ({
     set((state) => {
       const win = state.windows[id];
       if (!win || win.isMaximized) return state;
+      // Dragging a snapped window away restores its prior free-form bounds.
+      const updated: WindowState =
+        win.snap !== null
+          ? { ...win, snap: null, isMaximized: false, position }
+          : { ...win, position };
       return {
-        windows: { ...state.windows, [id]: { ...win, position } },
+        windows: { ...state.windows, [id]: updated },
       };
     }),
 
@@ -234,8 +320,12 @@ export const useWindowStore = create<WindowStore>((set) => ({
     set((state) => {
       const win = state.windows[id];
       if (!win || win.isMaximized) return state;
+      const updated: WindowState =
+        win.snap !== null
+          ? { ...win, snap: null, isMaximized: false, size }
+          : { ...win, size };
       return {
-        windows: { ...state.windows, [id]: { ...win, size } },
+        windows: { ...state.windows, [id]: updated },
       };
     }),
 
